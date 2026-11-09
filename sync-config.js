@@ -1,7 +1,6 @@
 // Configurazione pubblica del client Supabase.
-// Questa è una publishable key, sicura per l'uso nel browser.
-// NON inserire mai una service-role key in questo file.
+// La publishable key è sicura per l'uso nel browser.
 window.WILDLANDS_SYNC = {
-  url: "https://bvihgkzztxksmzdjtniy.supabase.co",
-  anonKey: "sb_publishable_kXVblfFaJZzSIPHbQYs6ig_0do9tewr"
+  url: "https://gdhdnbdcvmwvqsermsbu.supabase.co",
+  anonKey: "sb_publishable_3roPCun21jEAEDJeIoZ6UA_WN49uC4x"
 };
