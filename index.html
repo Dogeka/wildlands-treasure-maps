@@ -125,10 +125,32 @@ var ADMIN_SESSION_KEY="wildlands-treasure-admin-session",adminKey=sessionStorage
 var routePathVisible=false,routePathLayers=[];
 var ROUTE_STARTS_KEY="wildlands-route-starts-v1";
 var routeStarts=loadRouteStarts();
+function loadRouteStarts(){
+  try{
+    return JSON.parse(localStorage.getItem(ROUTE_STARTS_KEY)||"{}")||{};
+  }catch(e){
+    return {};
+  }
+}
 
+function saveRouteStarts(){
+  localStorage.setItem(ROUTE_STARTS_KEY,JSON.stringify(routeStarts));
+}
+
+function setRouteStart(p){
+  if(routeStarts[p.route]===p.number){
+    delete routeStarts[p.route];
+  }else{
+    routeStarts[p.route]=p.number;
+  }
+
+  saveRouteStarts();
+  refreshAll();
+}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[m]})}
 function loadLocalStates(){try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")||{}}catch(e){return {}}}
 function saveLocalStates(){localStorage.setItem(LOCAL_KEY,JSON.stringify(states))}
+
 function k(p){return p.route+"-"+p.number}
 function ll(p){return L.latLng(-p.y,p.x)}
 function stateFor(p){return states[k(p)]||null}
@@ -204,6 +226,16 @@ function rebuildMarkers(){
 }
 function wirePopup(p){
   document.querySelectorAll('.pop-btn[data-key="'+k(p)+'"][data-state]').forEach(function(b){b.onclick=function(){setPointState(p,b.dataset.state)}});
+  var start=document.querySelector('.route-start-action[data-route-start="'+k(p)+'"]');
+
+  if(start){
+    start.onclick=function(){
+      setRouteStart(p);
+  
+      var item=markerIndex.get(k(p));
+      if(item)item.marker.openPopup();
+    };
+  }
   var edit=document.querySelector('.pop-admin-edit[data-key="'+k(p)+'"]');
   if(edit)edit.onclick=function(){openAdminEditor(p,false)};
 }
@@ -302,10 +334,14 @@ function popup(p){
   var image=p.image_url?'<a href="'+esc(p.image_url)+'" target="_blank" rel="noopener"><img class="pop-image" src="'+esc(p.image_url)+'" alt="Riferimento del punto '+p.number+'"></a>':"";
   var note=p.description?'<div class="pop-note">'+esc(p.description).replace(/\n/g,"<br>")+'</div>':"";
   var admin=adminActive?'<div class="pop-admin"><button class="pop-btn pop-admin-edit" data-key="'+k(p)+'">Modifica scheda globale</button></div>':"";
+  var isRouteStart=routeStarts[p.route]===p.number;
+  var startButton='<button class="pop-btn route-start-action" data-route-start="'+k(p)+'">'+
+  (isRouteStart?"Rimuovi punto di partenza":"Imposta come partenza")+
+  '</button>';
   return '<div class="pop-k">'+p.routeLabel+'</div><div class="pop-t">'+esc(p.title||("Punto "+p.number))+'</div>'+image+note+
     '<div class="pop-s">'+statusText+'</div>'+meta+
     '<div class="pop-actions"><button class="pop-btn empty-action" data-state="empty" data-key="'+k(p)+'">× Nessun tesoro</button><button class="pop-btn spawn-action" data-state="spawned" data-key="'+k(p)+'">★ Tesoro spawnato</button>'+
-    (st!=="unchecked"?'<button class="pop-btn reset-action" data-state="unchecked" data-key="'+k(p)+'">Ripristina · Da controllare</button>':"")+'</div>'+admin;
+    (st!=="unchecked"?'<button class="pop-btn reset-action" data-state="unchecked" data-key="'+k(p)+'">Ripristina · Da controllare</button>':"")+'</div>'+startButton+admin;
 }
 Object.keys(ROUTES).forEach(function(r){markerLayers[r]=L.layerGroup()});
 
@@ -338,7 +374,7 @@ function improveRoute2Opt(order){
   var best=order.slice(),improved=true,passes=0;
   while(improved&&passes++<12){
     improved=false;
-    for(var i=0;i<best.length-2;i++){
+    for(var i=1;i<best.length-2;i++){
       for(var j=i+2;j<best.length;j++){
         var before=(i>0?routeEdgeCost(best[i-1],best[i]):0)+(j<best.length-1?routeEdgeCost(best[j],best[j+1]):0);
         var after=(i>0?routeEdgeCost(best[i-1],best[j]):0)+(j<best.length-1?routeEdgeCost(best[i],best[j+1]):0);
@@ -353,14 +389,30 @@ function improveRoute2Opt(order){
   return best;
 }
 function optimiseRoute(points){
-  if(points.length<3)return points.slice();
+  if(points.length<2)return points.slice();
+
+  // Se è stata scelta una partenza, la mantiene come primo punto.
+  var preferred=points.findIndex(function(p){
+    return routeStarts[p.route]===p.number;
+  });
+
+  if(preferred>=0){
+    return improveRoute2Opt(nearestRouteOrder(points,preferred));
+  }
+
+  // Altrimenti utilizza il calcolo automatico originale.
   var best=null,bestCost=Infinity;
-  // Try every possible starting point, then remove avoidable crossings with 2-opt.
+
   for(var s=0;s<points.length;s++){
     var candidate=improveRoute2Opt(nearestRouteOrder(points,s));
     var cost=routeOrderCost(candidate);
-    if(cost<bestCost){bestCost=cost;best=candidate}
+
+    if(cost<bestCost){
+      bestCost=cost;
+      best=candidate;
+    }
   }
+
   return best||points.slice();
 }
 function drawableRoutePoints(route){
