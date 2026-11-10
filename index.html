@@ -147,8 +147,31 @@ function setRouteStart(p){
   saveRouteStarts();
   refreshAll();
 }
+routeStarts=loadRouteStarts();
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[m]})}
 function loadLocalStates(){try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")||{}}catch(e){return {}}}
+function loadRouteStarts(){
+  try{
+    return JSON.parse(localStorage.getItem(ROUTE_STARTS_KEY)||"{}")||{};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveRouteStarts(){
+  localStorage.setItem(ROUTE_STARTS_KEY,JSON.stringify(routeStarts));
+}
+
+function setRouteStart(p){
+  if(routeStarts[p.route]===p.number){
+    delete routeStarts[p.route];
+  }else{
+    routeStarts[p.route]=p.number;
+  }
+
+  saveRouteStarts();
+  refreshAll();
+}
 function saveLocalStates(){localStorage.setItem(LOCAL_KEY,JSON.stringify(states))}
 
 function k(p){return p.route+"-"+p.number}
