@@ -123,6 +123,8 @@ var active="blu",mode=localStorage.getItem(MODE_KEY)==="group"?"group":"personal
 var states=mode==="group"?{}:loadLocalStates(),markerLayers={},markerIndex=new Map(),supabaseClient=null,syncTimer=null,realtimeChannel=null,globalMarkerChannel=null,groupCode=localStorage.getItem(GROUP_KEY)||"",playerName=localStorage.getItem(NAME_KEY)||"";
 var ADMIN_SESSION_KEY="wildlands-treasure-admin-session",adminKey=sessionStorage.getItem(ADMIN_SESSION_KEY)||"",adminActive=false,addMarkerMode=false,pickPositionMode=false,editingDraft=null,editingOriginalKey=null;
 var routePathVisible=false,routePathLayers=[];
+var ROUTE_STARTS_KEY="wildlands-route-starts-v1";
+var routeStarts=loadRouteStarts();
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[m]})}
 function loadLocalStates(){try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")||{}}catch(e){return {}}}
